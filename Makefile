@@ -1,2 +1,2 @@
-main: risc-v.cpp
-	g++ risc-v.cpp -o main -Ofast -O2
+code: risc-v.cpp
+	g++ risc-v.cpp -o code -Ofast -O2
