@@ -512,6 +512,6 @@ int main()
 		if(ID_lock) IF();
 	}
 	printf("%u\n",(((uint)(xreg[10]))&255u));
-	if(Total) printf("%d %d %.5f\n",Cnt,Total,double(Cnt)/double(Total));
+	//if(Total) printf("%d %d %.5f\n",Cnt,Total,double(Cnt)/double(Total));
 	return 0;
 }
