@@ -4,6 +4,7 @@
 #include<iostream>
 using namespace std;
 typedef unsigned int uint;
+int Total,Cnt;
 const int N=0x20000;
 int getval(char ch)
 {
@@ -21,18 +22,11 @@ bool check(int x)
 {
 	return !x||!used[x];
 }
-int BHT[N];
-void change(int Pc,int f)
+int PHT[8][4][N],rec[8][N];
+void change(int Pc,int f,bool Ans)
 {
-	if(f)
-	{
-		if(BHT[Pc]==0) BHT[Pc]=1;
-		else BHT[Pc]=3;
-	}
-	else{
-		if(BHT[Pc]==3) BHT[Pc]=2;
-		else BHT[Pc]=0;
-	}
+	if(Ans) PHT[f][rec[f][Pc]][Pc]=min(PHT[f][rec[f][Pc]][Pc]+1,3);
+	else PHT[f][rec[f][Pc]][Pc]=max(PHT[f][rec[f][Pc]][Pc]-1,0);
 }
 struct Register
 {
@@ -185,72 +179,84 @@ struct Register
 	{
 		if(A==B)
 		{
-			if(!pre) pc=pc0+imm,ID_lock=true;
-			change(pc0,1);
+			if(!pre) pc=pc0+imm,ID_lock=true;else Cnt++;
+			change(pc0,0,true);
+			rec[0][pc0]=(((rec[0][pc0]<<1)|1)&3);
 		}
 		else{
-			if(pre) pc=pc0+4,ID_lock=true;
-			change(pc0,0);
+			if(pre) pc=pc0+4,ID_lock=true;else Cnt++;
+			change(pc0,0,false);
+			rec[0][pc0]=((rec[0][pc0]<<1)&3);
 		}
 	}
 	void BNE()
 	{
 		if(A!=B)
 		{
-			if(!pre) pc=pc0+imm,ID_lock=true;
-			change(pc0,1);
+			if(!pre) pc=pc0+imm,ID_lock=true;else Cnt++;
+			change(pc0,1,true);
+			rec[1][pc0]=(((rec[1][pc0]<<1)|1)&3);
 		}
 		else{
-			if(pre) pc=pc0+4,ID_lock=true;
-			change(pc0,0);
+			if(pre) pc=pc0+4,ID_lock=true;else Cnt++;
+			change(pc0,1,false);
+			rec[1][pc0]=((rec[1][pc0]<<1)&3);
 		}
 	}
 	void BLT()
 	{
 		if(A<B)
 		{
-			if(!pre) pc=pc0+imm,ID_lock=true;
-			change(pc0,1);
+			if(!pre) pc=pc0+imm,ID_lock=true;else Cnt++;
+			change(pc0,4,true);
+			rec[4][pc0]=(((rec[4][pc0]<<1)|1)&3);
 		}
 		else{
-			if(pre) pc=pc0+4,ID_lock=true;
-			change(pc0,0);
+			if(pre) pc=pc0+4,ID_lock=true;else Cnt++;
+			change(pc0,4,false);
+			rec[4][pc0]=((rec[4][pc0]<<1)&3);
 		}
 	}
 	void BGE()
 	{
 		if(A>=B)
 		{
-			if(!pre) pc=pc0+imm,ID_lock=true;
-			change(pc0,1);
+			if(!pre) pc=pc0+imm,ID_lock=true;else Cnt++;
+			change(pc0,5,true);
+			rec[5][pc0]=(((rec[5][pc0]<<1)|1)&3);
 		}
 		else{
-			if(pre) pc=pc0+4,ID_lock=true;
-			change(pc0,0);
+			if(pre) pc=pc0+4,ID_lock=true;else Cnt++;
+			change(pc0,5,false);
+			rec[5][pc0]=((rec[5][pc0]<<1)&3);
 		}
 	}
 	void BLTU()
 	{
 		if((uint)A<(uint)B)
 		{
-			if(!pre) pc=pc0+imm,ID_lock=true;
-			change(pc0,1);
+			if(!pre) pc=pc0+imm,ID_lock=true;else Cnt++;
+			change(pc0,6,true);
+			rec[6][pc0]=(((rec[6][pc0]<<1)|1)&3);
 		}
 		else{
-			if(pre) pc=pc0+4,ID_lock=true;
-			change(pc0,0);
+			if(pre) pc=pc0+4,ID_lock=true;else Cnt++;
+			change(pc0,6,false);
+			rec[6][pc0]=((rec[6][pc0]<<1)&3);
 		}
 	}
 	void BGEU()
 	{
 		if((uint)A>=(uint)B)
 		{
-			if(!pre) pc=pc0+imm,ID_lock=true;
-			change(pc0,1);
+			if(!pre) pc=pc0+imm,ID_lock=true;else Cnt++;
+			change(pc0,7,true);
+			rec[7][pc0]=(((rec[7][pc0]<<1)|1)&3);
 		}
 		else{
-			if(pre) pc=pc0+4,ID_lock=true;
-			change(pc0,0);
+			if(pre) pc=pc0+4,ID_lock=true;else Cnt++;
+			change(pc0,7,false);
+			rec[7][pc0]=((rec[7][pc0]<<1)&3);
 		}
 	}
 	void LB()
@@ -360,8 +366,10 @@ void ID()
 		if(!check(ID_EX.rs1)||!check(ID_EX.rs2)) return;
 		ID_lock=true; EX_lock=false;
 		
-		ID_EX.pre=(BHT[ID_EX.pc0]>>1);
+		ID_EX.pre=(PHT[ID_EX.func3][rec[ID_EX.func3][ID_EX.pc0]][ID_EX.pc0]>>1);
 		if(ID_EX.pre) pc=ID_EX.pc0+ID_EX.imm;
+		
+		Total++;
 	}
 	else if(ID_EX.opcode==0b0110111||ID_EX.opcode==0b0010111) //U
 	{
@@ -382,12 +390,10 @@ void ID()
 		pc=ID_EX.pc0+ID_EX.imm;
 	}
 }
-int clk;
 void EX()
 {
 	EX_MEM=ID_EX;
 	EX_lock=true; MEM_lock=false;
-	clk=0;
 	if(EX_MEM.opcode==0b0110011)
 	{
 		int f1=EX_MEM.func3,f2=EX_MEM.func7;
@@ -440,6 +446,7 @@ void EX()
 	else if(ID_EX.opcode==0b0010111)
 		EX_MEM.ALUoutput=EX_MEM.pc0+EX_MEM.imm;
 }
+int clk;
 void MEM()
 {
 	MEM_WB=EX_MEM;
@@ -463,6 +470,7 @@ void MEM()
 				else if(f==2) MEM_WB.SW();
 			}
 			MEM_lock=true; WB_lock=false;
+			clk=0;
 		}
 	}
 	else MEM_lock=true,WB_lock=false;
@@ -504,5 +512,6 @@ int main()
 		if(ID_lock) IF();
 	}
 	printf("%u\n",(((uint)(xreg[10]))&255u));
+	if(Total) printf("%d %d %.5f\n",Cnt,Total,double(Cnt)/double(Total));
 	return 0;
 }
